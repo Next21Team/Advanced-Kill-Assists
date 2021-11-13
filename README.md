@@ -10,9 +10,9 @@ Displays assists for kills in the kill list, without changing the client setting
 There is a setting for the monetary reward that the player can get for helping in the kill; switch for issuing frags for an assist; selection of an algorithm for counting assistants.
 
 ## Cvars
-```aka_frag "1"``` If the value is positive, the player who assisted in the kill will be credited with a frag.
-```aka_money "100"``` How much money to pay to the assisted player. Payment will be made only if the specified value is greater than zero.
-```aka_damage "30.0"```
+- ```aka_frag "1"``` If the value is positive, the player who assisted in the kill will be credited with a frag.
+- ```aka_money "100"``` How much money to pay to the assisted player. Payment will be made only if the specified value is greater than zero.
+- ```aka_damage "30.0"```
 
 ## Macros
 ```
@@ -23,10 +23,10 @@ There is a setting for the monetary reward that the player can get for helping i
 ```
 
 ## Requirements
-[Reapi](https://github.com/s1lentq/reapi)
+- [Reapi](https://github.com/s1lentq/reapi)
 
 ## Authors
-[Xelson](https://github.com/Xelson)
+- [Xelson](https://github.com/Xelson)
 
 ## Thanks
 - **Nestle_** for the stock to change the nicknames of the players
