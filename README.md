@@ -29,8 +29,8 @@ There is a setting for the monetary reward that the player can get for helping i
 [Xelson](https://github.com/Xelson)
 
 ## Thanks
-**Nestle_** for the stock to change the nicknames of the players
-**PRoSToC0der** for potential bugs found
-**8dp** for help in developing an algorithm for reducing nicknames with floating sizes
-**Garey** for investigating and identifying the cause of the crash POV demo
-**ReHLDS Team** for Invisible Spectator plugin
+- **Nestle_** for the stock to change the nicknames of the players
+- **PRoSToC0der** for potential bugs found
+- **8dp** for help in developing an algorithm for reducing nicknames with floating sizes
+- **Garey** for investigating and identifying the cause of the crash POV demo
+- **ReHLDS Team** for Invisible Spectator plugin
