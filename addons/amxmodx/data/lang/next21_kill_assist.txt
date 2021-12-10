@@ -1,0 +1,5 @@
+[en]
+AKA_MESSAGE = !g[AKA]!y You received !g[award]$!y for assistance !t[killer]!y kill !t[victim]!y!
+
+[ru]
+AKA_MESSAGE = !g[AKA]!y Вы получили !g[award]$!y за помощь !t[killer]!y в убийстве !t[victim]!y!
