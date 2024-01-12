@@ -20,7 +20,9 @@ To integrate with AES, you need to compile the plugin with the *aes_v.inc* prese
 - ```aka_frag "1"``` If the value is positive, the player who assisted in the kill will be credited with a frag.
 - ```aka_money "100"``` How much money to pay to the assisted player. Payment will be made only if the specified value is greater than zero.
 - ```aka_damage "30.0"``` Universal damage value. Its value is determined by the ```aka_algorithm```.
-- ```aka_exp "0"``` If a non-empty value is specified, it will display a message for the kill assistant. The message template is contained in **data/lang/next21_kill_assist.txt**. Special inserts supported:
+- ```aka_exp "0"``` How much AES experience to give to the assisted player.
+How much AES experience to give to a player who assisted in a kill. The output will only occur if a value greater than zero is specified.
+- ```aka_chatmessage "1"``` Display a chat message to the player who assisted in the kill. The message template is contained in **data/lang/next21_kill_assist.txt**. Special inserts supported:
 ```c
 //		[award]  — Money kill reward equal to aka_money. Output without the '$' character.
 //		[exp]    — Experience kill reward equal to aka_exp. Only works with AES.

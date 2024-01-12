@@ -29,7 +29,8 @@ enum _:CVARS_DATA
 	CVAR_MONEY,
 	CVAR_EXP,
 	CVAR_DAMAGE,
-	CVAR_ALGORITHM
+	CVAR_ALGORITHM,
+	CVAR_CHATMESSAGE
 }
 
 enum _:PLAYER_DATA
@@ -54,7 +55,7 @@ public plugin_native_filter(szNative[], iIndex, bool:bTrap)
 
 public plugin_init()
 {
-	register_plugin("Advanced Kill Assists", "1.3d", "Xelson")
+	register_plugin("Advanced Kill Assists", "1.4", "Xelson")
 
 	RegisterHookChain(RG_CBasePlayer_Spawn, "CBasePlayer_Spawn_Post", true)
 	RegisterHookChain(RG_CBasePlayer_Killed, "CBasePlayer_Killed_Pre", false)
@@ -81,6 +82,7 @@ public plugin_cfg()
 	g_pCvars[CVAR_EXP] = register_cvar("aka_exp", "0")
 	g_pCvars[CVAR_DAMAGE] = register_cvar("aka_damage", "30.0")
 	g_pCvars[CVAR_ALGORITHM] = register_cvar("aka_algorithm", "1")
+	g_pCvars[CVAR_CHATMESSAGE] = register_cvar("aka_chatmessage", "1")
 
 	new szConfigFile[256]
 	get_localinfo("amxx_configsdir", szConfigFile, charsmax(szConfigFile))
@@ -140,7 +142,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 							iAssistant = id
 							iMaxDamage = g_ePlayerData[id][DAMAGE_ON][iVictim]
 						}
-						else if(g_ePlayerData[id][DAMAGE_ON][iVictim] == iMaxDamage) 
+						else if(g_ePlayerData[id][DAMAGE_ON][iVictim] == iMaxDamage)
 							iAssistant = g_ePlayerData[id][DAMAGE_ON_TIME][iVictim] > g_ePlayerData[iAssistant][DAMAGE_ON_TIME][iVictim] ? id : iAssistant
 					}
 					iTotalDamage += g_ePlayerData[id][DAMAGE_ON][iVictim]
@@ -174,7 +176,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 	iLen[1] = strlen(szName[1])
 
 	EnableHookChain(g_pSV_WriteFullClientUpdate)
-	
+
 	static const szWorldName[] = "world"
 	new bool:bIsAssistantConnected = bool:is_user_connected(iAssistant)
 
@@ -193,7 +195,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 	else if(is_user_connected(iKiller))
 	{
 		g_ePlayerData[iKiller][DAMAGE_ON][iVictim] = 0
-		
+
 		copy(szName[0], charsmax(szName[]), g_ePlayerData[iKiller][NAME])
 		iLen[0] = strlen(szName[0])
 
@@ -219,33 +221,36 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 		rh_update_user_info(g_iAssistKiller)
 	}
 	if(bIsAssistantConnected)
-	{   
+	{
 		g_ePlayerData[iAssistant][DAMAGE_ON][iVictim] = 0
 
 		new iAddMoney = get_pcvar_num(g_pCvars[CVAR_MONEY])
 		new iAddExp = get_pcvar_num(g_pCvars[CVAR_EXP])
 
-		if(iAddMoney > 0 || iAddExp > 0) 
+		if(iAddMoney > 0 || iAddExp > 0)
 		{
 			if(iAddMoney > 0) rg_add_account(iAssistant, iAddMoney)
 			#if defined aes_add_player_exp_f
 				if(iAddExp > 0) aes_add_player_exp_f(iAssistant, float(iAddExp))
 			#endif
 
-			new szMessage[192], szMoney[16], szExp[16], szKillerName[32]
-			formatex(szMessage, charsmax(szMessage), "%L", iAssistant, "AKA_MESSAGE")
-			if(szMessage[0])
+			if(get_pcvar_num(g_pCvars[CVAR_CHATMESSAGE]))
 			{
-				num_to_str(iAddMoney, szMoney, charsmax(szMoney))
-				num_to_str(iAddExp, szExp, charsmax(szExp))
-				if(is_user_valid(iKiller)) copy(szKillerName, charsmax(szKillerName), g_ePlayerData[iKiller][NAME])
+				new szMessage[192], szMoney[16], szExp[16], szKillerName[32]
+				formatex(szMessage, charsmax(szMessage), "%L", iAssistant, "AKA_MESSAGE")
+				if(szMessage[0])
+				{
+					num_to_str(iAddMoney, szMoney, charsmax(szMoney))
+					num_to_str(iAddExp, szExp, charsmax(szExp))
+					if(is_user_valid(iKiller)) copy(szKillerName, charsmax(szKillerName), g_ePlayerData[iKiller][NAME])
 
-				replace_all(szMessage, charsmax(szMessage), "[award]", szMoney)
-				replace_all(szMessage, charsmax(szMessage), "[exp]", szExp)
-				replace_all(szMessage, charsmax(szMessage), "[killer]", szKillerName)
-				replace_all(szMessage, charsmax(szMessage), "[victim]", g_ePlayerData[iVictim][NAME])
+					replace_all(szMessage, charsmax(szMessage), "[award]", szMoney)
+					replace_all(szMessage, charsmax(szMessage), "[exp]", szExp)
+					replace_all(szMessage, charsmax(szMessage), "[killer]", szKillerName)
+					replace_all(szMessage, charsmax(szMessage), "[victim]", g_ePlayerData[iVictim][NAME])
 
-				UTIL_SayText(iAssistant, szMessage)
+					UTIL_SayText(iAssistant, szMessage)
+				}
 			}
 		}
 
@@ -264,7 +269,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 			message_end()
 		}
 	}
-	
+
 	DisableHookChain(g_pSV_WriteFullClientUpdate)
 	if(g_iAssistKiller) EnableHookChain(g_pCBasePlayer_Killed_Post)
 
