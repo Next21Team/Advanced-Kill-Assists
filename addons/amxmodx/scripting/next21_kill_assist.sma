@@ -55,7 +55,7 @@ public plugin_native_filter(szNative[], iIndex, bool:bTrap)
 
 public plugin_init()
 {
-	register_plugin("Advanced Kill Assists", "1.4", "Xelson")
+	register_plugin("Advanced Kill Assists", "1.5", "Xelson")
 
 	RegisterHookChain(RG_CBasePlayer_Spawn, "CBasePlayer_Spawn_Post", true)
 	RegisterHookChain(RG_CBasePlayer_Killed, "CBasePlayer_Killed_Pre", false)
@@ -185,7 +185,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 		if(bIsAssistantConnected)
 		{
 			iExcess = iLen[1] - NAMES_LENGTH - (sizeof szWorldName)
-			if(iExcess > 0) strclip(szName[1], iExcess)
+			if(iExcess > 0) mb_strclip(szName[1], iExcess)
 			formatex(g_szDeathString, charsmax(g_szDeathString), "%s + %s", szWorldName, szName[1])
 
 			g_iAssistKiller = iAssistant
@@ -210,10 +210,10 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 			if(float(iExcess) / float(iLen[iLongest]) > 0.60)
 			{
 				new iNewLongest = floatround(float(iLen[iLongest]) / float(iLenSum) * float(iExcess))
-				strclip(szName[iLongest], iNewLongest)
-				strclip(szName[iShortest], iExcess - iNewLongest)
+				mb_strclip(szName[iLongest], iNewLongest)
+				mb_strclip(szName[iShortest], iExcess - iNewLongest)
 			}
-			else strclip(szName[iLongest], iExcess)
+			else mb_strclip(szName[iLongest], iExcess)
 		}
 		formatex(g_szDeathString, charsmax(g_szDeathString), "%s + %s", szName[0], szName[1])
 
@@ -297,10 +297,38 @@ public CBasePlayer_Killed_Post(iVictim, iKiller)
 	rh_update_user_info(iAssistKiller)
 }
 
-strclip(szString[], iClip, szEnding[] = "..")
+mb_strclip(string[], clip, ending[] = "..")
 {
-	new iLen = strlen(szString) - 1 - strlen(szEnding) - iClip
-	format(szString[iLen], iLen, szEnding)
+	if(clip <= 0) return
+
+	new Stack:stack = CreateStack();
+	new string_len = strlen(string);
+
+	for(new i = 0, ch_size; i < string_len; ) {
+		ch_size = _is_char_mb(string[i]);
+		PushStackCell(stack, ch_size);
+
+		i += ch_size;
+	}
+
+	new popped_chars_pos;
+	new ending_len = strlen(ending);
+
+	do {
+		new ch_pos;
+		PopStackCell(stack, ch_pos);
+		popped_chars_pos += ch_pos;
+	}
+	while (popped_chars_pos < clip + ending_len)
+
+	new len = string_len - popped_chars_pos;
+	format(string[len], ending_len, ending);
+
+	DestroyStack(stack);
+}
+
+_is_char_mb(ch) {
+	return max(1, is_char_mb(ch))
 }
 
 UTIL_SayText(id, const szMessage[], any:...)
