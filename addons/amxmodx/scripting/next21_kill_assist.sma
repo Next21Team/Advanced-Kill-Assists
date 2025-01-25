@@ -30,6 +30,7 @@ enum _:CVARS_DATA
 	CVAR_EXP,
 	CVAR_DAMAGE,
 	CVAR_ALGORITHM,
+	CVAR_NOFFREWARD,
 	CVAR_CHATMESSAGE
 }
 
@@ -37,6 +38,7 @@ enum _:PLAYER_DATA
 {
 	DAMAGE_ON[33],
 	Float:DAMAGE_ON_TIME[33],
+	bool:DAMAGE_ON_TEAMMATE[33],
 	NAME[32]
 }
 new g_ePlayerData[33][PLAYER_DATA], g_pCvars[CVARS_DATA], g_iMaxPlayers, g_iMsgScoreInfo
@@ -55,7 +57,7 @@ public plugin_native_filter(szNative[], iIndex, bool:bTrap)
 
 public plugin_init()
 {
-	register_plugin("Advanced Kill Assists", "1.5", "Xelson")
+	register_plugin("Advanced Kill Assists", "1.6", "Xelson")
 
 	RegisterHookChain(RG_CBasePlayer_Spawn, "CBasePlayer_Spawn_Post", true)
 	RegisterHookChain(RG_CBasePlayer_Killed, "CBasePlayer_Killed_Pre", false)
@@ -82,6 +84,7 @@ public plugin_cfg()
 	g_pCvars[CVAR_EXP] = register_cvar("aka_exp", "0")
 	g_pCvars[CVAR_DAMAGE] = register_cvar("aka_damage", "30.0")
 	g_pCvars[CVAR_ALGORITHM] = register_cvar("aka_algorithm", "1")
+	g_pCvars[CVAR_NOFFREWARD] = register_cvar("aka_noffreward", "1")
 	g_pCvars[CVAR_CHATMESSAGE] = register_cvar("aka_chatmessage", "1")
 
 	new szConfigFile[256]
@@ -97,14 +100,12 @@ public client_infochanged(id)
 
 public client_disconnected(id)
 {
-	arrayset(g_ePlayerData[id][DAMAGE_ON], 0, sizeof g_ePlayerData[][DAMAGE_ON])
-	for(new i = 1; i < g_iMaxPlayers; i++) g_ePlayerData[i][DAMAGE_ON][id] = 0
+	clear_player_data(id)
 }
 
 public CBasePlayer_Spawn_Post(id)
 {
-	arrayset(g_ePlayerData[id][DAMAGE_ON], 0, sizeof g_ePlayerData[][DAMAGE_ON])
-	for(new i = 1; i < g_iMaxPlayers; i++) g_ePlayerData[i][DAMAGE_ON][id] = 0
+	clear_player_data(id)
 }
 
 public CBasePlayer_TakeDamage_Pre(iVictim, iWeapon, iAttacker, Float:fDamage)
@@ -116,7 +117,10 @@ public CBasePlayer_TakeDamage_Pre(iVictim, iWeapon, iAttacker, Float:fDamage)
 			new Float:fHealth; get_entvar(iVictim, var_health, fHealth)
 			if(fDamage > fHealth) fDamage = fHealth
 		}
+
 		g_ePlayerData[iAttacker][DAMAGE_ON][iVictim] += floatround(fDamage)
+		if(get_member(iAttacker, m_iTeam) == get_member(iVictim, m_iTeam))
+			g_ePlayerData[iAttacker][DAMAGE_ON_TEAMMATE][iVictim] = true
 		g_ePlayerData[iAttacker][DAMAGE_ON_TIME][iVictim] = get_gametime()
 	}
 }
@@ -195,6 +199,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 	else if(is_user_connected(iKiller))
 	{
 		g_ePlayerData[iKiller][DAMAGE_ON][iVictim] = 0
+		g_ePlayerData[iKiller][DAMAGE_ON_TEAMMATE][iVictim] = false
 
 		copy(szName[0], charsmax(szName[]), g_ePlayerData[iKiller][NAME])
 		iLen[0] = strlen(szName[0])
@@ -222,52 +227,56 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 	}
 	if(bIsAssistantConnected)
 	{
-		g_ePlayerData[iAssistant][DAMAGE_ON][iVictim] = 0
-
-		new iAddMoney = get_pcvar_num(g_pCvars[CVAR_MONEY])
-		new iAddExp = get_pcvar_num(g_pCvars[CVAR_EXP])
-
-		if(iAddMoney > 0 || iAddExp > 0)
+		if(!g_ePlayerData[iAssistant][DAMAGE_ON_TEAMMATE][iVictim] || !get_pcvar_num(g_pCvars[CVAR_NOFFREWARD]))
 		{
-			if(iAddMoney > 0) rg_add_account(iAssistant, iAddMoney)
-			#if defined aes_add_player_exp_f
-				if(iAddExp > 0) aes_add_player_exp_f(iAssistant, float(iAddExp))
-			#endif
+			new iAddMoney = get_pcvar_num(g_pCvars[CVAR_MONEY])
+			new iAddExp = get_pcvar_num(g_pCvars[CVAR_EXP])
 
-			if(get_pcvar_num(g_pCvars[CVAR_CHATMESSAGE]))
+			if(iAddMoney > 0 || iAddExp > 0)
 			{
-				new szMessage[192], szMoney[16], szExp[16], szKillerName[32]
-				formatex(szMessage, charsmax(szMessage), "%L", iAssistant, "AKA_MESSAGE")
-				if(szMessage[0])
+				if(iAddMoney > 0) rg_add_account(iAssistant, iAddMoney)
+				#if defined aes_add_player_exp_f
+					if(iAddExp > 0) aes_add_player_exp_f(iAssistant, float(iAddExp))
+				#endif
+
+				if(get_pcvar_num(g_pCvars[CVAR_CHATMESSAGE]))
 				{
-					num_to_str(iAddMoney, szMoney, charsmax(szMoney))
-					num_to_str(iAddExp, szExp, charsmax(szExp))
-					if(is_user_valid(iKiller)) copy(szKillerName, charsmax(szKillerName), g_ePlayerData[iKiller][NAME])
+					new szMessage[192], szMoney[16], szExp[16], szKillerName[32]
+					formatex(szMessage, charsmax(szMessage), "%L", iAssistant, "AKA_MESSAGE")
+					if(szMessage[0])
+					{
+						num_to_str(iAddMoney, szMoney, charsmax(szMoney))
+						num_to_str(iAddExp, szExp, charsmax(szExp))
+						if(is_user_valid(iKiller)) copy(szKillerName, charsmax(szKillerName), g_ePlayerData[iKiller][NAME])
 
-					replace_all(szMessage, charsmax(szMessage), "[award]", szMoney)
-					replace_all(szMessage, charsmax(szMessage), "[exp]", szExp)
-					replace_all(szMessage, charsmax(szMessage), "[killer]", szKillerName)
-					replace_all(szMessage, charsmax(szMessage), "[victim]", g_ePlayerData[iVictim][NAME])
+						replace_all(szMessage, charsmax(szMessage), "[award]", szMoney)
+						replace_all(szMessage, charsmax(szMessage), "[exp]", szExp)
+						replace_all(szMessage, charsmax(szMessage), "[killer]", szKillerName)
+						replace_all(szMessage, charsmax(szMessage), "[victim]", g_ePlayerData[iVictim][NAME])
 
-					UTIL_SayText(iAssistant, szMessage)
+						UTIL_SayText(iAssistant, szMessage)
+					}
 				}
+			}
+
+			if(get_pcvar_num(g_pCvars[CVAR_FRAG]))
+			{
+				new Float:fNewFrags; get_entvar(iAssistant, var_frags, fNewFrags)
+				fNewFrags++
+				set_entvar(iAssistant, var_frags, fNewFrags)
+
+				message_begin(MSG_ALL, g_iMsgScoreInfo)
+				write_byte(iAssistant)
+				write_short(floatround(fNewFrags))
+				write_short(get_member(iAssistant, m_iDeaths))
+				write_short(0)
+				write_short(get_member(iAssistant, m_iTeam))
+				message_end()
 			}
 		}
 
-		if(get_pcvar_num(g_pCvars[CVAR_FRAG]))
-		{
-			new Float:fNewFrags; get_entvar(iAssistant, var_frags, fNewFrags)
-			fNewFrags++
-			set_entvar(iAssistant, var_frags, fNewFrags)
-
-			message_begin(MSG_ALL, g_iMsgScoreInfo)
-			write_byte(iAssistant)
-			write_short(floatround(fNewFrags))
-			write_short(get_member(iAssistant, m_iDeaths))
-			write_short(0)
-			write_short(get_member(iAssistant, m_iTeam))
-			message_end()
-		}
+		g_ePlayerData[iAssistant][DAMAGE_ON][iVictim] = 0
+		g_ePlayerData[iAssistant][DAMAGE_ON_TEAMMATE][iVictim] = false
 	}
 
 	DisableHookChain(g_pSV_WriteFullClientUpdate)
@@ -295,6 +304,17 @@ public CBasePlayer_Killed_Post(iVictim, iKiller)
 
 	new iAssistKiller = g_iAssistKiller; g_iAssistKiller = 0
 	rh_update_user_info(iAssistKiller)
+}
+
+clear_player_data(id)
+{
+	arrayset(g_ePlayerData[id][DAMAGE_ON], 0, sizeof g_ePlayerData[][DAMAGE_ON])
+	arrayset(g_ePlayerData[id][DAMAGE_ON_TEAMMATE], false, sizeof g_ePlayerData[][DAMAGE_ON_TEAMMATE])
+	for(new i = 1; i < g_iMaxPlayers; i++)
+	{
+		g_ePlayerData[i][DAMAGE_ON][id] = 0
+		g_ePlayerData[i][DAMAGE_ON_TEAMMATE][id] = false
+	}
 }
 
 mb_strclip(string[], clip, ending[] = "..")
