@@ -11,8 +11,8 @@
 	#define client_disconnected client_disconnect
 #endif
 
-#if REAPI_VERSION < 52121
-	#error This plugin supports ReAPI >=5.2.0.121
+#if REAPI_VERSION_MAJOR < 5 || (REAPI_VERSION_MAJOR == 5 && REAPI_VERSION_MINOR < 3)
+	#error You must be update ReAPI to 5.3.x or higher
 #endif
 
 //#define DEBUG
