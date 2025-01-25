@@ -11,7 +11,7 @@
 	#define client_disconnected client_disconnect
 #endif
 
-#if REAPI_VERSION_MAJOR < 5 && REAPI_VERSION_MINOR < 3
+#if REAPI_VERSION_MAJOR < 5 || (REAPI_VERSION_MAJOR == 5 && REAPI_VERSION_MINOR < 3)
 	#error You must be update ReAPI to 5.3.x or higher
 #endif
 
