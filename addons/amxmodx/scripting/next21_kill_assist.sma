@@ -34,20 +34,29 @@ enum _:CVARS_DATA
 	CVAR_CHATMESSAGE
 }
 
+enum _:FORWARDS_DATA
+{
+	FWD_ASSIST
+}
+
 enum _:PLAYER_DATA
 {
 	DAMAGE_ON[33],
 	Float:DAMAGE_ON_TIME[33],
 	bool:DAMAGE_ON_TEAMMATE[33],
-	NAME[32]
+	NAME[32],
+	ASSISTS_COUNT
 }
 new g_ePlayerData[33][PLAYER_DATA], g_pCvars[CVARS_DATA], g_iMaxPlayers, g_iMsgScoreInfo
 new HookChain:g_pSV_WriteFullClientUpdate, HookChain:g_pCBasePlayer_Killed_Post, g_szDeathString[32], g_iAssistKiller
 new g_pCvarAssistHp
+new g_pForwards[FORWARDS_DATA]
 
 public plugin_natives()
 {
 	set_native_filter("plugin_native_filter")
+
+	register_native("aka_get_player_assists_count", "_aka_get_player_assists_count")
 }
 
 public plugin_native_filter(szNative[], iIndex, bool:bTrap)
@@ -75,6 +84,8 @@ public plugin_init()
 	g_pCvarAssistHp = get_cvar_pointer("csstats_sql_assisthp")
 	g_iMsgScoreInfo = get_user_msgid("ScoreInfo")
 	g_iMaxPlayers = get_maxplayers() + 1
+
+	g_pForwards[FWD_ASSIST] = CreateMultiForward("aka_on_assist", ET_STOP, FP_CELL, FP_CELL, FP_CELL)
 }
 
 public plugin_cfg()
@@ -174,6 +185,10 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 	}
 
 	if(!iAssistant || iKiller == iVictim) return HC_CONTINUE
+
+	new iRetVal
+	ExecuteForward(g_pForwards[FWD_ASSIST], iRetVal, iAssistant, iKiller, iVictim)
+	if(iRetVal != PLUGIN_CONTINUE) return HC_CONTINUE
 
 	new szName[2][32], iLen[2], iExcess
 	copy(szName[1], charsmax(szName[]), g_ePlayerData[iAssistant][NAME])
@@ -277,6 +292,7 @@ public CBasePlayer_Killed_Pre(iVictim, iKiller)
 
 		g_ePlayerData[iAssistant][DAMAGE_ON][iVictim] = 0
 		g_ePlayerData[iAssistant][DAMAGE_ON_TEAMMATE][iVictim] = false
+		g_ePlayerData[iAssistant][ASSISTS_COUNT] += 1
 	}
 
 	DisableHookChain(g_pSV_WriteFullClientUpdate)
@@ -310,6 +326,7 @@ clear_player_data(id)
 {
 	arrayset(g_ePlayerData[id][DAMAGE_ON], 0, sizeof g_ePlayerData[][DAMAGE_ON])
 	arrayset(g_ePlayerData[id][DAMAGE_ON_TEAMMATE], false, sizeof g_ePlayerData[][DAMAGE_ON_TEAMMATE])
+	arrayset(g_ePlayerData[id][ASSISTS_COUNT], 0, sizeof g_ePlayerData[][ASSISTS_COUNT])
 	for(new i = 1; i < g_iMaxPlayers; i++)
 	{
 		g_ePlayerData[i][DAMAGE_ON][id] = 0
@@ -400,3 +417,9 @@ public ClCmd_Assist()
 	ExecuteHamB(Ham_CS_RoundRespawn, id[2])
 }
 #endif
+
+public _aka_get_player_assists_count(plugin, num_params)
+{
+	new id = get_param(1)
+	return g_ePlayerData[id][ASSISTS_COUNT]
+}
